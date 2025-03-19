@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG Partycle Generator</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Load Three.js and required libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/simplex-noise@2.4.0/simplex-noise.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Main Tabs Navigation -->
+    <div class="main-tabs">
+      <button class="tab-button active" data-tab="generator">Generator</button>
+      <button class="tab-button" data-tab="help">Help</button>
+      <button class="tab-button" data-tab="about">About</button>
+    </div>
+
+    <!-- Generator Tab Content -->
+    <div class="tab-content active" id="generator-tab">
+      <header>
+        <h1>SVG Partycle Generator</h1>
+        <div class="header-buttons">
+          <button id="screenshot-btn" class="tool-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M19 9V7C19 5.89543 18.1046 5 17 5H15M19 15V17C19 18.1046 18.1046 19 17 19H7C5.89543 19 5 18.1046 5 17V7C5 5.89543 5.89543 5 7 5H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Screenshot
+          </button>
+          <button id="export-gif-btn" class="tool-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15 10L19 14M19 14L15 18M19 14H13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M5 8V18M5 18H9M5 18C5 14 9 14 9 14C9 14 9 18 9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Export GIF
+          </button>
+          <button id="export-code-btn" class="tool-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 17L3 12L8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16 17L21 12L16 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M14 3L10 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Export Code
+          </button>
+          <button id="generate-btn" class="primary-btn">Generate Particles</button>
+          <button id="reset-btn" class="secondary-btn">Reset Settings</button>
+        </div>
+      </header>
+
+      <main>
+        <div class="left-panel">
+          <!-- SVG Layer Management Section -->
+          <div class="panel-section" id="layers-panel">
+            <h2>SVG Layers
+              <button id="add-svg-btn" class="small-btn" title="Add New SVG">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </h2>
+            <div class="layers-container">
+              <div class="empty-layers-message">No SVG layers added yet</div>
+              <!-- Layers will be dynamically added here -->
+              <ul id="layers-list" class="layers-list"></ul>
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <h2>SVG Source</h2>
+            <div class="control-row">
+              <div class="file-input">
+                <div class="file-input-btn">Upload SVG File</div>
+                <input type="file" id="svg-input" accept=".svg">
+              </div>
+              <div class="file-name" id="svg-file-name">No file selected</div>
+            </div>
+            <div class="slider-row">
+              <label for="svg-scale">SVG Scale</label>
+              <input type="range" id="svg-scale" min="0.1" max="3" step="0.1" value="1" data-live="true">
+              <span class="range-value" id="svg-scale-value">1.0</span>
+            </div>
+            <div class="slider-row">
+              <label for="svg-depth">SVG Depth</label>
+              <input type="range" id="svg-depth" min="0" max="100" step="1" value="20" data-live="true">
+              <span class="range-value" id="svg-depth-value">20</span>
+            </div>
+            <div class="checkbox-row">
+              <input type="checkbox" id="preserve-colors" checked data-live="true">
+              <label for="preserve-colors">Preserve SVG Colors</label>
+            </div>
+            <div class="checkbox-row">
+              <input type="checkbox" id="include-strokes" checked data-live="true">
+              <label for="include-strokes">Include SVG Strokes</label>
+            </div>
+            <div class="slider-row">
+              <label for="stroke-width">Stroke Width</label>
+              <input type="range" id="stroke-width" min="1" max="10" step="1" value="2" data-live="true">
+              <span class="range-value" id="stroke-width-value">2</span>
+            </div>
+            <div class="slider-row">
+              <label for="stroke-detail">Stroke Detail</label>
+              <input type="range" id="stroke-detail" min="1" max="10" step="1" value="5" data-live="true">
+              <span class="range-value" id="stroke-detail-value">5</span>
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <h2>Particle Settings</h2>
+            <div class="slider-row">
+              <label for="particle-count">Particle Count</label>
+              <input type="range" id="particle-count" min="100" max="10000" step="100" value="1500" data-live="true">
+              <span class="range-value" id="particle-count-value">1500</span>
+            </div>
+            <div class="slider-row">
+              <label for="particle-density">Particle Density</label>
+              <input type="range" id="particle-density" min="1" max="10" step="1" value="4" data-live="true">
+              <span class="range-value" id="particle-density-value">4</span>
+            </div>
+            <div class="slider-row">
+              <label for="min-size">Min Size</label>
+              <input type="range" id="min-size" min="0.1" max="2" step="0.1" value="0.5" data-live="true">
+              <span class="range-value" id="min-size-value">0.5</span>
+            </div>
+            <div class="slider-row">
+              <label for="max-size">Max Size</label>
+              <input type="range" id="max-size" min="0.5" max="5" step="0.1" value="1.5" data-live="true">
+              <span class="range-value" id="max-size-value">1.5</span>
+            </div>
+            <div class="checkbox-row">
+              <input type="checkbox" id="use-instanced-rendering" checked data-live="true">
+              <label for="use-instanced-rendering">High Performance Mode</label>
+            </div>
+            <div class="color-section">
+              <div class="checkbox-row">
+                <input type="checkbox" id="use-gradient" checked data-live="true">
+                <label for="use-gradient">Use Gradient</label>
+              </div>
+              <div id="solid-color-control" style="display: none;">
+                <div class="color-row">
+                  <label for="particle-color">Color</label>
+                  <input type="color" id="particle-color" value="#6366f1" data-live="true">
+                </div>
+              </div>
+              <div id="gradient-controls">
+                <div class="color-row">
+                  <label for="gradient-color1">Start Color</label>
+                  <input type="color" id="gradient-color1" value="#6366f1" data-live="true">
+                </div>
+                <div class="color-row">
+                  <label for="gradient-color2">End Color</label>
+                  <input type="color" id="gradient-color2" value="#ec4899" data-live="true">
+                </div>
+              </div>
+              <div class="themes-section">
+                <h4>Color Themes</h4>
+                <div class="theme-buttons">
+                  <button class="theme-btn" data-theme="default">Default</button>
+                  <button class="theme-btn" data-theme="sunset">Sunset</button>
+                  <button class="theme-btn" data-theme="ocean">Ocean</button>
+                  <button class="theme-btn" data-theme="forest">Forest</button>
+                  <button class="theme-btn" data-theme="purple">Purple</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <h2>Animation & Interaction</h2>
+            <div class="slider-row">
+              <label for="animation-speed">Animation Speed</label>
+              <input type="range" id="animation-speed" min="0.1" max="5" step="0.1" value="1" data-live="true">
+              <span class="range-value" id="animation-speed-value">1.0</span>
+            </div>
+            <div class="checkbox-row">
+              <input type="checkbox" id="mouse-interaction" checked data-live="true">
+              <label for="mouse-interaction">Mouse Interaction</label>
+            </div>
+            <div class="checkbox-row">
+              <input type="checkbox" id="sand-effect" data-live="true">
+              <label for="sand-effect">Sand Collider Effect</label>
+            </div>
+            <div class="slider-row">
+              <label for="sand-strength">Sand Collider Strength</label>
+              <input type="range" id="sand-strength" min="1" max="10" step="0.5" value="5" data-live="true">
+              <span class="range-value" id="sand-strength-value">5.0</span>
+            </div>
+            <div class="slider-row">
+              <label for="sand-return">Return Speed</label>
+              <input type="range" id="sand-return" min="0.1" max="5" step="0.1" value="1" data-live="true">
+              <span class="range-value" id="sand-return-value">1.0</span>
+            </div>
+            <div class="checkbox-row">
+              <input type="checkbox" id="repel-effect" data-live="true">
+              <label for="repel-effect">Repel Effect</label>
+            </div>
+            <div class="slider-row">
+              <label for="interaction-radius">Interaction Radius</label>
+              <input type="range" id="interaction-radius" min="20" max="200" step="5" value="80" data-live="true">
+              <span class="range-value" id="interaction-radius-value">80</span>
+            </div>
+            <div class="slider-row">
+              <label for="interaction-strength">Interaction Strength</label>
+              <input type="range" id="interaction-strength" min="1" max="10" step="0.5" value="3" data-live="true">
+              <span class="range-value" id="interaction-strength-value">3.0</span>
+            </div>
+            <div class="slider-row">
+              <label for="interaction-sensitivity">Interaction Sensitivity</label>
+              <input type="range" id="interaction-sensitivity" min="1" max="10" step="1" value="5" data-live="true">
+              <span class="range-value" id="interaction-sensitivity-value">5</span>
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <h2>Camera Controls</h2>
+            <div class="checkbox-row">
+              <input type="checkbox" id="enable-orbit" checked data-live="true">
+              <label for="enable-orbit">Enable Orbit Controls</label>
+            </div>
+            <div class="slider-row">
+              <label for="orbit-sensitivity">Orbit Sensitivity</label>
+              <input type="range" id="orbit-sensitivity" min="0.1" max="5" step="0.1" value="1" data-live="true">
+              <span class="range-value" id="orbit-sensitivity-value">1.0</span>
+            </div>
+            <div class="slider-row">
+              <label for="zoom-speed">Zoom Speed</label>
+              <input type="range" id="zoom-speed" min="0.1" max="3" step="0.1" value="1" data-live="true">
+              <span class="range-value" id="zoom-speed-value">1.0</span>
+            </div>
+            <div class="slider-row">
+              <label for="pan-speed">Pan Speed</label>
+              <input type="range" id="pan-speed" min="0.1" max="3" step="0.1" value="1" data-live="true">
+              <span class="range-value" id="pan-speed-value">1.0</span>
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <h2>Effects</h2>
+            <div class="checkbox-row">
+              <input type="checkbox" id="glow-effect" checked data-live="true">
+              <label for="glow-effect">Glow Effect</label>
+            </div>
+            <div class="slider-row">
+              <label for="bloom-strength">Bloom Strength</label>
+              <input type="range" id="bloom-strength" min="0.1" max="2" step="0.1" value="0.9" data-live="true">
+              <span class="range-value" id="bloom-strength-value">0.9</span>
+            </div>
+            <div class="slider-row">
+              <label for="bloom-radius">Bloom Radius</label>
+              <input type="range" id="bloom-radius" min="0" max="1" step="0.01" value="0.4" data-live="true">
+              <span class="range-value" id="bloom-radius-value">0.4</span>
+            </div>
+            <div class="slider-row">
+              <label for="bloom-threshold">Bloom Threshold</label>
+              <input type="range" id="bloom-threshold" min="0" max="1" step="0.01" value="0.85" data-live="true">
+              <span class="range-value" id="bloom-threshold-value">0.85</span>
+            </div>
+            <div class="checkbox-row">
+              <input type="checkbox" id="noise-movement" checked data-live="true">
+              <label for="noise-movement">Noise Movement</label>
+            </div>
+            <div class="slider-row">
+              <label for="noise-scale">Noise Scale</label>
+              <input type="range" id="noise-scale" min="0.001" max="0.05" step="0.001" value="0.02" data-live="true">
+              <span class="range-value" id="noise-scale-value">0.020</span>
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <h2>Presets</h2>
+            <div class="preset-controls">
+              <select id="preset-selector" class="preset-selector">
+                <option value="">Choose a preset...</option>
+                <option value="dynamic-logo">Dynamic Logo</option>
+                <option value="flowing-text">Flowing Text</option>
+                <option value="organic-shape">Organic Shape</option>
+                <option value="sci-fi">Sci-Fi</option>
+                <option value="minimal">Minimal</option>
+              </select>
+              <div class="preset-buttons">
+                <button id="save-preset-btn" class="small-btn" title="Save Current Settings">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M17 21v-8H7v8M7 3v5h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+                <button id="delete-preset-btn" class="small-btn" title="Delete Selected Preset">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="center-panel">
+          <div id="scene-container">
+            <div class="drop-area" id="drop-area">
+              <div class="drop-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 6V18M12 6L7 11M12 6L17 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M3 15V16C3 17.6569 4.34315 19 6 19H18C19.6569 19 21 17.6569 21 16V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <h3>Upload your SVG</h3>
+              <p>Drag & drop here or click to browse</p>
+            </div>
+          </div>
+          <div id="loading">
+            <div class="spinner"></div>
+          </div>
+          <div class="canvas-controls">
+            <button id="reset-camera-btn" class="canvas-btn">Reset View</button>
+            <div class="instructions">
+              <span>Drag to rotate • Scroll to zoom • Right-click to pan</span>
+            </div>
+          </div>
+          <div class="performance-stats" id="performance-stats">
+            <span>FPS: <span id="fps-counter">60</span></span>
+            <span>Particles: <span id="particle-counter">0</span></span>
+          </div>
+          <div class="footer">
+            Created by <a href="https://www.enricodeiana.design/" target="_blank">Enrico Deiana</a>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Help Tab Content -->
+    <div class="tab-content" id="help-tab">
+      <div class="content-container">
+        <h2 class="section-title">How to Use SVG Partycle Generator</h2>
+        <p class="section-description">
+          This tool converts SVG files into dynamic, interactive particle animations. Here's how to get started:
+        </p>
+
+        <div class="help-grid">
+          <div class="help-column">
+            <h3>Basic Controls</h3>
+            <ul class="help-list">
+              <li>
+                <strong>Upload SVG:</strong> Click "Upload SVG File" or drag and drop your SVG directly into the main area
+              </li>
+              <li>
+                <strong>Layer Management:</strong> Add multiple SVGs and control their order and visibility from the Layers panel
+              </li>
+              <li>
+                <strong>SVG Scale:</strong> Adjust the overall size of your SVG
+              </li>
+              <li>
+                <strong>SVG Depth:</strong> Add 3D depth to your particles (z-axis variation) for a more dimensional look
+              </li>
+              <li>
+                <strong>Preserve Colors:</strong> Enable to keep original SVG colors instead of applying custom colors
+              </li>
+              <li>
+                <strong>Include Strokes:</strong> Enable to include particles for SVG stroke outlines (like in calligraphy)
+              </li>
+              <li>
+                <strong>Stroke Width & Detail:</strong> Control how thick and detailed stroke particle outlines appear
+              </li>
+              <li>
+                <strong>Particle Count:</strong> Control how many particles make up your shape
+              </li>
+              <li>
+                <strong>Particle Density:</strong> Adjust sampling density (lower values mean more detailed sampling)
+              </li>
+              <li>
+                <strong>Size Range:</strong> Set minimum and maximum particle sizes for more natural look
+              </li>
+              <li>
+                <strong>High Performance Mode:</strong> Enable to use instanced rendering for better performance with large numbers of particles
+              </li>
+              <li>
+                <strong>Color:</strong> Choose between solid color or gradient options (or preserve original SVG colors)
+              </li>
+              <li>
+                <strong>Animation Speed:</strong> Control how quickly particles animate
+              </li>
+            </ul>
+          </div>
+
+          <div class="help-column">
+            <h3>Interactive Features</h3>
+            <div class="feature-explanation">
+              <h4>Layer Management</h4>
+              <p>Import multiple SVGs and manage them as separate layers. Reorder layers by dragging them up and down, hide/show individual layers, or delete layers you no longer need.</p>
+            </div>
+            <div class="feature-explanation">
+              <h4>Mouse Interaction</h4>
+              <p>Move your cursor over the particles to see them react. Adjust interaction radius and strength to customize the effect.</p>
+            </div>
+            <div class="feature-explanation">
+              <h4>Sand Collider Effect</h4>
+              <p>Makes particles behave like sand, moving away from your cursor and gradually returning to their original positions.</p>
+            </div>
+            <div class="feature-explanation">
+              <h4>Repel Effect</h4>
+              <p>When enabled, particles move away from your cursor instead of being attracted to it.</p>
+            </div>
+            <div class="feature-explanation">
+              <h4>Camera Controls</h4>
+              <p>Customize orbit sensitivity, zoom and pan speeds to control how the camera responds to your mouse movements.</p>
+            </div>
+            <div class="feature-explanation">
+              <h4>Glow Effect & Bloom</h4>
+              <p>Adds light bloom around particles for a more vibrant appearance. Adjust bloom strength, radius and threshold for precise control.</p>
+            </div>
+            <div class="feature-explanation">
+              <h4>Noise Movement</h4>
+              <p>Adds organic, flowing movement to particles using 3D Perlin noise for more natural animations.</p>
+            </div>
+            <div class="feature-explanation">
+              <h4>Presets</h4>
+              <p>Save your favorite configurations as presets for quick access later. Several pre-configured settings are available to get you started.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="tips-section">
+          <h3>New Features</h3>
+          <ul class="help-list">
+            <li><strong>Layer Management:</strong> Import and manage multiple SVGs as separate layers. Control their visibility, order, and delete unwanted layers from the dedicated panel.</li>
+            <li><strong>High Performance Mode:</strong> Uses instanced rendering for dramatically improved performance with high particle counts (5,000+ particles).</li>
+            <li><strong>Original Color Preservation:</strong> Keep the original colors from your SVG instead of applying custom colors or gradients.</li>
+            <li><strong>GIF Export:</strong> Export your animated particle system as an animated GIF to share on social media or websites.</li>
+            <li><strong>Performance Metrics:</strong> View real-time frame rate and particle count metrics to optimize your creations.</li>
+            <li><strong>Preset System:</strong> Save and load custom configurations to quickly switch between different visual styles.</li>
+          </ul>
+        </div>
+
+        <div class="tips-section">
+          <h3>Tips & Tricks</h3>
+          <ul class="help-list">
+            <li><strong>Layer Management:</strong> For complex compositions, build up your scene using multiple SVG layers. Import background elements first, then stack more detailed elements on top.</li>
+            <li><strong>Performance:</strong> For complex scenes with thousands of particles, enable "High Performance Mode" for better framerates. This uses instanced rendering instead of individual meshes.</li>
+            <li><strong>Preparing SVGs:</strong> For best results, use SVGs with clean, simple shapes. Complex SVGs with many elements may require higher particle counts.</li>
+            <li><strong>Working with Strokes:</strong> Enable "Include Strokes" with high stroke detail for calligraphy-like effects with particle outlines. Works best with SVGs that have defined stroke paths.</li>
+            <li><strong>Preserving Colors:</strong> When working with colorful logos or illustrations, enable "Preserve SVG Colors" to maintain the original design's color scheme.</li>
+            <li><strong>Sand Effect:</strong> The sand collider effect creates a more physical interaction, like pushing through sand. Increase return speed for faster particle recovery.</li>
+            <li><strong>Create Depth:</strong> Increase SVG Depth for a true 3D effect. Rotate the view with your mouse to see the depth dimension.</li>
+            <li><strong>Fluid Movement:</strong> For smoother, more organic animations, enable noise movement and increase the noise scale slightly.</li>
+            <li><strong>Mouse Interaction:</strong> For subtle interaction, lower the interaction strength. For dramatic effects, increase both radius and strength.</li>
+            <li><strong>Camera Tips:</strong> Reduce orbit sensitivity if rotation feels too fast. Increase zoom speed for quicker zoom in/out actions.</li>
+            <li><strong>Bloom Settings:</strong> For a subtle glow, use low bloom strength with high threshold. For dramatic glow, increase strength and radius while lowering threshold.</li>
+            <li><strong>Color Tips:</strong> Try different color themes for quick inspiration. Gradients often create more visually interesting results than solid colors.</li>
+            <li><strong>Capturing Results:</strong> Use the "Screenshot" button for still images, "Export GIF" for animations, or "Export Code" to get code you can use in your own projects.</li>
+            <li><strong>Saving Presets:</strong> When you find a configuration you like, save it as a preset for future use. This saves all current settings including colors and animation parameters.</li>
+          </ul>
+        </div>
+
+        <div class="tips-section">
+          <h3>Common Issues & Solutions</h3>
+          <ul class="help-list">
+            <li><strong>SVG Not Showing:</strong> Make sure your SVG has visible elements. Some SVGs may need to be pre-processed to make them compatible.</li>
+            <li><strong>Performance Issues:</strong> For complex scenes with thousands of particles, enable "High Performance Mode" which uses instanced rendering for better framerates.</li>
+            <li><strong>Layer Management:</strong> If you can't see your newest SVG, check the layer panel to ensure it's visible (eye icon) and properly stacked (might be behind another layer).</li>
+            <li><strong>Colors Not Matching:</strong> If your SVG colors don't appear correctly, make sure "Preserve SVG Colors" is enabled in the SVG Source section.</li>
+            <li><strong>Mouse Interaction Not Working:</strong> Check that "Mouse Interaction" is enabled. Try increasing the interaction radius and sensitivity.</li>
+            <li><strong>Camera Controls Feel Off:</strong> Adjust orbit sensitivity, zoom speed, and pan speed to match your preferences.</li>
+            <li><strong>Particles Looking Too Dense/Sparse:</strong> Adjust the particle count and density settings to find the right balance for your SVG.</li>
+            <li><strong>Strokes Not Visible:</strong> Increase stroke width and detail values. For some SVGs, you may need to edit the original file to have more defined strokes.</li>
+            <li><strong>Slow Performance:</strong> Reduce particle count, disable glow effect, or use simpler SVGs to improve performance. Enable "High Performance Mode" for complex scenes.</li>
+            <li><strong>Sand Effect Too Strong/Weak:</strong> Adjust sand strength and return speed to find the right balance for your design.</li>
+            <li><strong>Can't See 3D Effect:</strong> Increase the SVG depth value and use your mouse to rotate the view to see the 3D dimension.</li>
+            <li><strong>Bloom Not Visible:</strong> Increase bloom strength and radius while decreasing threshold for more noticeable glow effects.</li>
+            <li><strong>GIF Export Taking Too Long:</strong> Reduce particle count and animation complexity before exporting GIFs for faster processing.</li>
+            <li><strong>Imported Code Not Working:</strong> Make sure to include all required Three.js libraries as listed in the exported code comments.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- About Tab Content -->
+    <div class="tab-content" id="about-tab">
+      <div class="content-container">
+        <h2 class="section-title">About SVG Partycle Generator</h2>
+        
+        <div class="about-description">
+          <p>
+            SVG Partycle Generator is a powerful tool that transforms SVG files into mesmerizing 
+            interactive particle animations. Built with modern web technologies, it offers 
+            designers and developers a simple way to create engaging visual effects.
+          </p>
+          <p>
+            The generator uses Three.js for WebGL-powered rendering, allowing for high-performance 
+            animations even with thousands of particles. Each SVG is carefully analyzed and 
+            converted into particles while preserving its visual form.
+          </p>
+        </div>
+
+        <div class="about-features">
+          <h3>Advanced Features</h3>
+          <ul class="feature-list">
+            <li>Multi-layer SVG support with layer management</li>
+            <li>High-performance instanced rendering mode</li>
+            <li>Original SVG color preservation</li>
+            <li>3D particle rendering with depth control</li>
+            <li>Physics-based mouse interaction with attraction and repulsion</li>
+            <li>Sand collider physics with return-to-origin behavior</li>
+            <li>Customizable camera orbit controls</li>
+            <li>Perlin noise algorithms for organic movement</li>
+            <li>Custom gradient and color theme support</li>
+            <li>Real-time SVG scaling and transformation</li>
+            <li>Random particle sizing for more natural effects</li>
+            <li>Export functionality for code, screenshots and GIFs</li>
+            <li>Customizable animation parameters</li>
+            <li>True circular particles with glow effects</li>
+            <li>Enhanced 3D depth visualization</li>
+            <li>SVG stroke and fill support with detailed controls</li>
+            <li>Advanced post-processing bloom effects</li>
+            <li>Preset system for saving custom configurations</li>
+            <li>Real-time performance monitoring</li>
+          </ul>
+        </div>
+
+        <div class="use-cases">
+          <h3>Use Cases</h3>
+          <ul class="use-case-list">
+            <li>Interactive logo animations for websites</li>
+            <li>Creative hero sections and backgrounds</li>
+            <li>Portfolio showcases and presentations</li>
+            <li>Social media graphics and content</li>
+            <li>Digital art installations</li>
+            <li>Educational visualizations</li>
+            <li>Eye-catching UI elements</li>
+            <li>Brand identity enhancement</li>
+            <li>Calligraphy and typography art</li>
+            <li>Motion graphic intros</li>
+            <li>Interactive data visualizations</li>
+            <li>Artistic SVG transformations</li>
+            <li>Multi-layered composite animations</li>
+            <li>Animated icons and symbols</li>
+            <li>Interactive storytelling elements</li>
+          </ul>
+        </div>
+
+        <div class="technical-notes">
+          <h3>Technical Notes</h3>
+          <p>
+            This generator works entirely in your browser with no server-side processing. Your SVGs are
+            never uploaded to any server, ensuring your designs remain private and secure.
+          </p>
+          <p>
+            High Performance Mode uses Three.js InstancedMesh for dramatically improved rendering efficiency, 
+            allowing you to work with 10,000+ particles smoothly even on modest hardware.
+          </p>
+          <p>
+            The multi-layer system allows for complex compositions while maintaining good performance through
+            optimized rendering techniques and efficient memory management.
+          </p>
+          <p>
+            The generated code is designed to be lightweight and compatible with modern browsers. 
+            It requires Three.js and SimplexNoise libraries to function.
+          </p>
+        </div>
+
+        <div class="attribution">
+          <p>Created with ❤️ by <a href="https://www.enricodeiana.design/" target="_blank">Enrico Deiana</a></p>
+          <p>Version 2.0 © 2025</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Code Export Modal -->
+  <div class="modal" id="code-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Generated Code</h3>
+        <button class="close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <pre id="generated-code">// Generate particles to see code here</pre>
+      </div>
+      <div class="modal-footer">
+        <button id="copy-code-btn" class="primary-btn">Copy to Clipboard</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Save Preset Modal -->
+  <div class="modal" id="preset-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Save Preset</h3>
+        <button class="close-preset-modal">&times;</button>
+      </div>
+      <div class="modal-body preset-modal-body">
+        <div class="form-group">
+          <label for="preset-name">Preset Name</label>
+          <input type="text" id="preset-name" placeholder="My Awesome Preset">
+        </div>
+        <div class="form-group">
+          <label for="preset-description">Description (optional)</label>
+          <textarea id="preset-description" placeholder="Describe your preset..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="cancel-preset-btn" class="secondary-btn">Cancel</button>
+        <button id="confirm-save-preset-btn" class="primary-btn">Save Preset</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Layer Template (hidden, used for cloning) -->
+  <template id="layer-template">
+    <li class="layer-item" data-layer-id="">
+      <div class="layer-drag-handle">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 6H21M8 12H21M8 18H21M3 6H3.01M3 12H3.01M3 18H3.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="layer-visibility">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="layer-info">
+        <span class="layer-name">Layer Name</span>
+      </div>
+      <div class="layer-actions">
+        <button class="layer-btn layer-edit" title="Edit Layer">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button class="layer-btn layer-delete" title="Delete Layer">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </li>
+  </template>
+  
+  <div class="notification" id="notification">Code copied to clipboard!</div>
+  
+  <!-- Main script -->
+  <script src="script.js"></script>
+</body>
+</html>
